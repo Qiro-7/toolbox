@@ -1,0 +1,34 @@
+{
+  "name": "toolbox",
+  "version": "1.0.0",
+  "description": "All-in-One Online Toolbox API",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^11.7.0",
+      "onFail": "download"
+    }
+  },
+  "type": "module",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "helmet": "^8.2.0",
+    "localtunnel": "^2.0.2",
+    "morgan": "^1.11.0",
+    "multer": "^2.2.0",
+    "sharp": "^0.35.2",
+    "uuid": "^14.0.1"
+  },
+  "devDependencies": {
+    "@railway/cli": "^5.23.1"
+  }
+}

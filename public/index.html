@@ -1,0 +1,183 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>在线工具箱 - 免费在线工具</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; color: #333; }
+header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; text-align: center; }
+header h1 { font-size: 2em; margin-bottom: 8px; }
+header p { opacity: 0.9; }
+.container { max-width: 1200px; margin: 0 auto; padding: 30px 20px; }
+.tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px; }
+.card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; }
+.card-header { padding: 16px 20px; border-bottom: 1px solid #eee; font-weight: 600; font-size: 1.1em; display: flex; align-items: center; gap: 8px; }
+.card-body { padding: 20px; }
+.card-body textarea, .card-body input[type="file"], .card-body input[type="number"], .card-body select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 12px; }
+.card-body textarea { min-height: 120px; resize: vertical; font-family: monospace; }
+.btn { padding: 10px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; }
+.btn-primary { background: #667eea; color: white; }
+.btn-primary:hover { background: #5a6fd6; }
+.btn-success { background: #52c41a; color: white; }
+.result-box { margin-top: 12px; padding: 12px; background: #f6f8fa; border-radius: 8px; font-size: 13px; word-break: break-all; display: none; }
+.result-box.show { display: block; }
+.result-box pre { white-space: pre-wrap; font-family: monospace; font-size: 12px; }
+.error { color: #ff4d4f; }
+.success { color: #52c41a; }
+footer { text-align: center; padding: 30px; color: #999; font-size: 13px; }
+.icon { font-size: 1.2em; }
+@media (max-width: 600px) { .tools-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>🛠️ 在线工具箱</h1>
+  <p>免费、快速、无需注册 · 每天都有免费额度</p>
+</header>
+<div class="container">
+  <div class="tools-grid" id="app"></div>
+</div>
+<footer>在线工具箱 · 每天免费使用 · 商业合作请联系管理员</footer>
+
+<script>
+const tools = [
+  { id: 'img-compress', icon: '🗜️', title: '图片压缩', desc: '将图片压缩为 WebP 格式，大幅减小文件体积', type: 'image-compress' },
+  { id: 'img-convert', icon: '🔄', title: '图片格式转换', desc: '在 PNG/JPEG/WebP 格式之间自由转换', type: 'image-convert' },
+  { id: 'img-resize', icon: '📐', title: '图片缩放', desc: '按宽度等比缩放图片，保持清晰度', type: 'image-resize' },
+  { id: 'text-count', icon: '📊', title: '字数统计', desc: '统计中英文字数、字符数、行数、段落数', type: 'text-count' },
+  { id: 'text-format', icon: '✨', title: '文本格式化', desc: '去除多余空格、大小写转换、行反转等', type: 'text-format' },
+  { id: 'text-base64', icon: '🔐', title: 'Base64 编解码', desc: '文本与 Base64 之间的快速转换', type: 'text-base64' }
+];
+
+function renderTools() {
+  const app = document.getElementById('app');
+  app.innerHTML = tools.map(t => {
+    if (t.type.startsWith('image')) return imageCard(t);
+    return textCard(t);
+  }).join('');
+}
+
+function imageCard(t) {
+  return `<div class="card">
+    <div class="card-header"><span class="icon">${t.icon}</span> ${t.title}</div>
+    <div class="card-body">
+      <p style="color:#666;margin-bottom:12px;font-size:13px">${t.desc}</p>
+      <input type="file" id="${t.id}-file" accept="image/*">
+      <div id="${t.id}-opts">
+        ${t.type === 'image-compress' ? '<input type="number" id="quality" placeholder="压缩质量 (1-100)" value="80" min="1" max="100">' : ''}
+        ${t.type === 'image-convert' ? '<select id="format"><option value="webp">WebP</option><option value="png">PNG</option><option value="jpeg">JPEG</option></select>' : ''}
+        ${t.type === 'image-resize' ? '<input type="number" id="width" placeholder="目标宽度 (px)" value="800">' : ''}
+      </div>
+      <button class="btn btn-primary" onclick="processImage('${t.type}','${t.id}')">开始处理</button>
+      <div class="result-box" id="${t.id}-result"></div>
+    </div>
+  </div>`;
+}
+
+function textCard(t) {
+  const extraOpts = t.type === 'text-format' ? `
+    <select id="action">
+      <option value="trim">去除多余空格</option>
+      <option value="to-upper">转大写</option>
+      <option value="to-lower">转小写</option>
+      <option value="reverse-lines">行反转</option>
+      <option value="remove-spaces">删除所有空格</option>
+    </select>` : '';
+  const extraOpts2 = t.type === 'text-base64' ? `
+    <select id="action">
+      <option value="encode">编码 (Encode)</option>
+      <option value="decode">解码 (Decode)</option>
+    </select>` : '';
+  return `<div class="card">
+    <div class="card-header"><span class="icon">${t.icon}</span> ${t.title}</div>
+    <div class="card-body">
+      <p style="color:#666;margin-bottom:12px;font-size:13px">${t.desc}</p>
+      <textarea id="${t.id}-text" placeholder="在此输入文本..."></textarea>
+      ${extraOpts}${extraOpts2}
+      <button class="btn btn-primary" onclick="processText('${t.type}','${t.id}')">开始处理</button>
+      <div class="result-box" id="${t.id}-result"></div>
+    </div>
+  </div>`;
+}
+
+async function processImage(type, id) {
+  const file = document.getElementById(id + '-file').files[0];
+  if (!file) { showResult(id, '请先选择图片文件', true); return; }
+  const formData = new FormData();
+  formData.append('image', file);
+  let url = '/api/v1/image/' + type.split('-')[1];
+  if (type === 'image-compress') {
+    const q = document.getElementById('quality')?.value || 80;
+    url += '?quality=' + q;
+  } else if (type === 'image-convert') {
+    const f = document.getElementById('format')?.value || 'webp';
+    url += '?format=' + f;
+  } else if (type === 'image-resize') {
+    const w = document.getElementById('width')?.value || 800;
+    url += '?width=' + w;
+  }
+  try {
+    const res = await fetch(url, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+      let html = '<span class="success">✅ 处理成功！</span><br>';
+      if (data.originalSize) html += '原始大小: ' + formatSize(data.originalSize) + '<br>压缩后: ' + formatSize(data.compressedSize) + '<br>压缩率: ' + data.ratio + '<br>';
+      html += '<a href="' + data.downloadUrl + '" target="_blank" class="btn btn-success" style="display:inline-block;margin-top:8px;text-decoration:none">⬇️ 下载文件</a>';
+      showResult(id, html);
+    } else {
+      showResult(id, data.error || '处理失败', true);
+    }
+  } catch(e) { showResult(id, '请求失败: ' + e.message, true); }
+}
+
+async function processText(type, id) {
+  const text = document.getElementById(id + '-text').value;
+  if (!text) { showResult(id, '请输入文本内容', true); return; }
+  const body = { text };
+  const actionEl = document.getElementById('action');
+  if (actionEl) body.action = actionEl.value;
+  try {
+    const res = await fetch('/api/v1/text/' + type.split('-')[1], {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (data.success) {
+      let html = '<span class="success">✅ 处理成功</span><br>';
+      if (data.data) {
+        if (data.data.charCount !== undefined) {
+          html += '字符数: ' + data.data.charCount + '<br>单词数: ' + data.data.wordCount + '<br>行数: ' + data.data.lineCount + '<br>中文字数: ' + data.data.chineseChars + '<br>英文单词: ' + data.data.englishWords + '<br>段落数: ' + data.data.paragraphCount;
+        } else if (data.data.result) {
+          html += '结果:<br><pre>' + escapeHtml(data.data.result) + '</pre>';
+        }
+      }
+      showResult(id, html);
+    } else {
+      showResult(id, data.error || '处理失败', true);
+    }
+  } catch(e) { showResult(id, '请求失败: ' + e.message, true); }
+}
+
+function showResult(id, html, isError) {
+  const el = document.getElementById(id + '-result');
+  el.className = 'result-box show';
+  el.innerHTML = isError ? '<span class="error">❌ ' + html + '</span>' : html;
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+renderTools();
+</script>
+</body>
+</html>
